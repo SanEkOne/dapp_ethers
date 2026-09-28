@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .product-card {
+            border: 1px solid #ccc;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .product-card img {
+            max-width: 150px;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="create-product-container">
+            <h2>Добавить продукт</h2>
+            <form id="addProductForm">
+                <input type="text" id="name" placeholder="Название" required><br><br>
+                <input type="text" id="description" placeholder="Описание" required><br><br>
+                <input type="text" id="price" placeholder="Цена в ETH (например, 0.01)" required><br><br>
+                <input type="text" id="address" placeholder="Адрес / Местоположение" required><br><br>
+                <input type="text" id="imgUrl" placeholder="URL изображения"><br><br>
+                <button type="submit">Добавить продукт</button>
+            </form>
+        </div>
+        <div class="product-container" id="productContainer">Загрузка...</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.17.0/ethers.umd.min.js"></script>
+    <script>
+        const contractAddress = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+
+        const contractABI = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "_name",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "_description",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "_price",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "_adress",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "_created_at",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "_imgUrl",
+                        "type": "string"
+                    }
+                ],
+                "name": "addProduct",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getProducts",
+                "outputs": [
+                    {
+                        "components": [
+                            {
+                                "internalType": "string",
+                                "name": "name",
+                                "type": "string"
+                            },
+                            {
+                                "internalType": "string",
+                                "name": "description",
+                                "type": "string"
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "price",
+                                "type": "uint256"
+                            },
+                            {
+                                "internalType": "string",
+                                "name": "adress",
+                                "type": "string"
+                            },
+                            {
+                                "internalType": "string",
+                                "name": "created_at",
+                                "type": "string"
+                            },
+                            {
+                                "internalType": "string",
+                                "name": "imgUrl",
+                                "type": "string"
+                            }
+                        ],
+                        "internalType": "struct Product.Item[]",
+                        "name": "",
+                        "type": "tuple[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "products",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "name",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "description",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "price",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "adress",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "created_at",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "imgUrl",
+                        "type": "string"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        async function getProducts() {
+            const container = document.getElementById('productContainer');
+
+            try {
+                const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+                const contract = new ethers.Contract(contractAddress, contractABI, provider);
+
+                const products = await contract.getProducts();
+
+                if (products.length === 0) {
+                    container.innerHTML = '<p>Продукты не найдены.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                products.forEach(product => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+
+                    const formattedPrice = ethers.formatEther(product.price);
+
+                    card.innerHTML = `
+                        <h3>${product.name}</h3>
+                        <p><strong>Описание:</strong> ${product.description}</p>
+                        <p><strong>Цена:</strong> ${formattedPrice} ETH</p>
+                        <p><strong>Адрес:</strong> ${product.adress}</p>
+                        <p><small>Создано: ${product.created_at}</small></p>
+                        ${product.imgUrl ? `<img src="${product.imgUrl}" alt="${product.name}">` : ''}
+                    `;
+
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error("Ошибка загрузки:", error);
+                container.innerHTML = '<p>Ошибка при загрузке продуктов. Проверьте консоль.</p>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            getProducts();
+            const form = document.getElementById('addProductForm');
+            if (form) {
+                form.addEventListener('submit', addProduct);
+            }
+        });
+
+        async function addProduct() {
+            event.preventDefault();
+
+            try {
+                let provider;
+                let signer;
+
+                provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+                signer = await provider.getSigner(0);
+
+                const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+                const name = document.getElementById('name').value;
+                const description = document.getElementById('description').value;
+                const priceInEth = document.getElementById('price').value;
+                const address = document.getElementById('address').value;
+                const imgUrl = document.getElementById('imgUrl').value;
+
+                const priceInWei = ethers.parseEther(priceInEth);
+
+                const createdAt = new Date().toLocaleString();
+
+                const tx = await contract.addProduct(
+                    name,
+                    description,
+                    priceInWei,
+                    address,
+                    createdAt,
+                    imgUrl
+                );
+
+                await tx.wait();
+
+                alert("Продукт успешно добавлен!");
+
+                document.getElementById('addProductForm').reset();
+
+                await getProducts();
+            } catch (error) {
+                console.error("Ошибка при добавлении продукта:", error);
+                alert("Не удалось добавить продукт. Проверьте консоль.");
+            }
+        }
+    </script>
+</body>
+
+</html>
